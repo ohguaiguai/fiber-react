@@ -31,3 +31,21 @@ if (oldFiber.alternate) {
   newFiber.nextEffect = null;
 }
 ```
+
+#### 总结
+
+fiber 就是利用浏览器的 api requestIdleCallback 在浏览器渲染的一帧的空闲时间里来渲染我们的 dom。
+
+fiber 执行分为两个阶段：
+
+1. 协调阶段: 可以认为是 Diff 阶段, 这个阶段会找出所有节点变更，例如节点新增、删除、属性变更等等, 这些变更 React 称之为副作用(Effect)， 此阶段可以中断
+
+- 这个阶段有两个任务
+
+  1.  根据虚拟 DOM 生成 fiber 树, 按照广度优先遍历
+
+  2.  收集 effect list, 按照后序遍历
+
+2. 提交阶段: 将上一个阶段计算出来的需要处理的副作用(Effects)一次性执行了。
+
+- 这个阶段必须同步执行，不能被打断， 否则会出现不连续的 UI

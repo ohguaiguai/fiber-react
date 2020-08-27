@@ -213,6 +213,7 @@ function createDOM(currentFiber) {
 
 // 根据虚拟dom建立fiber树
 function reconcileChildren(currentFiber, newChildren) {
+  console.log(newChildren);
   let newChildIndex = 0; //新虚拟DOM数组中的索引
   // 如果不是第一次渲染
   let oldFiber = currentFiber.alternate && currentFiber.alternate.child; // 取到上一个已经渲染的fiber树的第一个子fiber
