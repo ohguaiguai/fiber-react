@@ -14,7 +14,7 @@ import { Update, UpdateQueue } from './updateQueue';
 
 let workInProgressRoot = null; //正在渲染中的根Fiber
 let nextUnitOfWork = null; //下一个工作单元
-let currentRoot = null; // 当前渲染成功的树
+let currentRoot = null; // 保存当前渲染成功的树，下一次更新时使用
 let deletions = []; // 删除的节点并不放在effect list中，需要单独记录并执行
 
 let workInProgressFiber = null; // 正在工作中的fiber
@@ -132,19 +132,28 @@ function performUnitOfWork(currentFiber) {
 // 1. 创建真实DOM元素
 // 2. 创建子fiber
 function beginWork(currentFiber) {
-  if (currentFiber.tag === TAG_ROOT) {
-    //如果是根节点 不需要创建真实DOM元素
-    updateHostRoot(currentFiber);
-  } else if (currentFiber.tag === TAG_TEXT) {
-    //如果是原生文本节点
-    updateHostText(currentFiber);
-  } else if (currentFiber.tag === TAG_HOST) {
-    //如果是原生DOM节点
-    updateHostComponent(currentFiber);
-  } else if (currentFiber.tag === TAG_CLASS) {
-    updateClassComponent(currentFiber);
-  } else if (currentFiber.tag === TAG_FUNCTION) {
-    updateFunctionComponent(currentFiber);
+  const tag = currentFiber.tag;
+  switch (tag) {
+    case TAG_ROOT:
+      //如果是根节点 不需要创建真实DOM元素
+      updateHostRoot(currentFiber);
+      break;
+    case TAG_TEXT:
+      //如果是原生文本节点
+      updateHostText(currentFiber);
+      break;
+    case TAG_HOST:
+      //如果是原生DOM节点
+      updateHostComponent(currentFiber);
+      break;
+    case TAG_CLASS:
+      updateClassComponent(currentFiber);
+      break;
+    case TAG_FUNCTION:
+      updateFunctionComponent(currentFiber);
+      break;
+    default:
+      break;
   }
 }
 
@@ -217,6 +226,7 @@ function reconcileChildren(currentFiber, newChildren) {
     const newChild = newChildren[newChildIndex];
     const sameType = oldFiber && newChild && oldFiber.type === newChild.type;
     let tag, newFiber;
+
     if (newChild && typeof newChild.type === 'function') {
       tag = TAG_FUNCTION;
     } else if (
@@ -230,6 +240,7 @@ function reconcileChildren(currentFiber, newChildren) {
     } else if (newChild && typeof newChild.type === 'string') {
       tag = TAG_HOST; //原生DOM组件
     }
+
     // 说明老的fiber和新的虚拟DOM类型一样，可以复用老的DOM节点，更新即可
     if (sameType) {
       if (oldFiber.alternate) {
