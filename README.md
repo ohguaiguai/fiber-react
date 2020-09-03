@@ -49,3 +49,57 @@ fiber 执行分为两个阶段：
 2. 提交阶段: 将上一个阶段计算出来的需要处理的副作用(Effects)一次性执行了。
 
 - 这个阶段必须同步执行，不能被打断， 否则会出现不连续的 UI
+
+##### 函数组件的执行流程是什么？
+
+1. 全局上有两个变量 workInProgressFiber 和 hookIndex, 前者用来保存当前正在执行中的 fiber, 后者是 hook 的索引
+2. 初次渲染给 workInProgressFiber 赋值为当前正在执行中的 fiber， 挂了一个 hooks 数组，初始化 hookIndex 为 0, 然后执行函数拿到最终返回值，执行函数的过程中会执行 useReducer(useState 本质上也是 useReducer)
+
+```js
+function updateFunctionComponent(currentFiber) {
+  workInProgressFiber = currentFiber;
+  hookIndex = 0;
+  workInProgressFiber.hooks = []; // 给当前的渲染fiber创建一个hooks
+  // currentFiber.type就是函数名， 执行这个函数得到返回的结果
+  const newChildren = [currentFiber.type(currentFiber.props)];
+  reconcileChildren(currentFiber, newChildren);
+}
+```
+
+3. 执行 useReducer, 第一次渲染根据每一个 useState 生成一个 hook 对象，这个对象包含 state 和一个更新队列。 下一次更新就执行更新队列返回最新 state
+
+```js
+const [action, changeAction] = useState('');
+```
+
+```js
+export function useReducer(reducer, initialValue) {
+  // 取上一次的hook
+  let oldHook =
+    workInProgressFiber.alternate &&
+    workInProgressFiber.alternate.hooks &&
+    workInProgressFiber.alternate.hooks[hookIndex]; // 可能有多个hook
+  let newHook = oldHook;
+  if (oldHook) {
+    newHook.state = oldHook.updateQueue.forceUpdate(oldHook.state);
+  } else {
+    newHook = {
+      state: initialValue,
+      updateQueue: new UpdateQueue(),
+    };
+  }
+  const dispatch = (action) => {
+    // 这个action在useState中就是我们传入的新的state, 先入队，再调度执行
+    newHook.updateQueue.enqueueUpdate(
+      new Update(reducer ? reducer(newHook.state, action) : action)
+    );
+    scheduleRoot();
+  };
+  workInProgressFiber.hooks[hookIndex++] = newHook;
+  return [newHook.state, dispatch];
+}
+```
+
+#### useState 如何保存状态?
+
+全局有一个 hooks 数组保存所有的 hook, 每一个 hook 都有一个 hook 对象， 这个对象保存了 state

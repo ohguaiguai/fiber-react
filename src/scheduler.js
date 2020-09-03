@@ -160,7 +160,8 @@ function beginWork(currentFiber) {
 function updateFunctionComponent(currentFiber) {
   workInProgressFiber = currentFiber;
   hookIndex = 0;
-  workInProgressFiber.hooks = [];
+  workInProgressFiber.hooks = []; // 给当前的渲染fiber创建一个hooks
+  // currentFiber.type就是函数名， 执行这个函数得到返回的结果
   const newChildren = [currentFiber.type(currentFiber.props)];
   reconcileChildren(currentFiber, newChildren);
 }
